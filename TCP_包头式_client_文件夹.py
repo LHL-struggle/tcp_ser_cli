@@ -20,7 +20,11 @@ client_socket = socket(AF_INET, SOCK_STREAM)
 client_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 client_socket.bind(('0.0.0.0', 8888))
 # 服务器的地址与端口号
-servers_address = ('192.168.8.183', 7777)
+with open('C:\\Users\\Administrator\\Desktop\\Py_Home folder\\配置文件\\IP_address.txt', 'rb') as f:
+    servers_address = tuple(eval(f.read().decode()))  # 字节型转换为字符串型,在将字符串型转换为元组型
+print(servers_address)
+# 服务器的地址与端口号
+#servers_address = ('192.168.8.183', 7777)
 # servers_address = ('192.168.8.115', 9999)
 # 连接到服务器
 client_socket.connect(servers_address)
@@ -65,15 +69,13 @@ while 1:
         '''
         receive_file = client_socket.recv(file_size-copy_size)
         if len(receive_file) == 0:
+            open(receive_file_path, "ab")
             break
         # 已拷贝文件大小
         copy_size += len(receive_file)
         # 打开文件并想文件中写入拷贝的内容
         with open(receive_file_path, "ab") as f:
-            f.write(receive_file)
-        # 输出文件内容
-        #print(receive_file.decode())
-        #print('已拷贝大小：', copy_size)
+                f.write(receive_file)
         # 如果文件拷贝大小等于要拷贝的文件大小，则提示数据传输完成，跳出循环，
         if copy_size == file_size:
             break
@@ -83,5 +85,6 @@ while 1:
         print('%s拷贝文件与源文件一致' % file_name)
     else:
         print('%s拷贝文件与源文件不一致，拷贝失败' % file_name)
+        break
 # 关闭客户端套接字
 client_socket.close()
