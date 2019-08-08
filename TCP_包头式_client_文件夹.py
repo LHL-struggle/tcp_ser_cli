@@ -4,6 +4,7 @@
 from socket import *
 import hashlib
 import os
+import time
 def md5(file_path):
     m = hashlib.md5()
     with open(file_path, "rb") as f:
@@ -13,7 +14,6 @@ def md5(file_path):
                 break
             m.update(data)
     return m.hexdigest().upper()       # 大写
-
 # 创建客户端套接字
 client_socket = socket(AF_INET, SOCK_STREAM)
 # 绑定本机地址与固定端口号
@@ -24,7 +24,6 @@ client_socket.bind(('0.0.0.0', 8888))
 with open('C:\\Users\\Administrator\\Desktop\\Py_Home folder\\配置文件\\IP_address.txt', 'rb') as f:
     servers_address = tuple(eval(f.read().decode()))  # 字节型转换为字符串型,在将字符串型转换为元组型
 '''
-#print(servers_address)
 # 服务器的地址与端口号
 servers_address = ('192.168.8.183', 7777)
 # servers_address = ('192.168.8.115', 9999)
@@ -32,7 +31,15 @@ servers_address = ('192.168.8.183', 7777)
 client_socket.connect(servers_address)
 # 欲存放的文件路径
 copy_path = 'C:\\Users\\Administrator\\Desktop\\a'
+# 文件夹的数目和文件数目
+Num_dir, Num_file = 0, 0
+# 文件总大小
+Full_file_size = 0
+# 开始拷贝时间
+start_time = time.time()
 while 1:
+    # 拷贝进度
+    new_data, old_data = 0, 0
     # 接收服务器返回的文件名称与大小,删除文件名右边的空白符，得取文件名
     file_path_name = client_socket.recv(300).decode().rstrip()
     if len(file_path_name) == 0:
@@ -45,15 +52,20 @@ while 1:
     file_path = receive_file_path.replace(file_name, '')
     # 删除文件名大小值右边的空白符，得取文件大小
     file_size = int((client_socket.recv(15).decode()).rstrip())
+    # 文件夹总大小
+    if file_size != -1:
+        Full_file_size += file_size
     # 源文件的MD5值
     file_md5 = (client_socket.recv(32).decode()).rstrip()
-    print('文件名：%s\n文件大小：%s\nmd5:%s' % (file_name, file_size, file_md5))
+    print('文件名：%s； 文件大小：%s； md5: %s' % (file_name, file_size, file_md5))
 
     # 如果file_size == -1则表示为空目录
     if file_size == -1:
-        os.makedirs(receive_file_path)    # 创建空目录
-        print('创建了空目录%s' % receive_file_path)
-        continue    # 跳出此次循环
+        if not os.path.exists(receive_file_path):
+            os.makedirs(receive_file_path)    # 创建空目录
+            Num_dir += 1
+            print('创建了空目录%s\n' % receive_file_path)
+            continue    # 跳出此次循环
 
     # 判断路径是否存在,如果不存在则创建文件夹
     if not os.path.exists(file_path):
@@ -79,15 +91,26 @@ while 1:
         # 打开文件并想文件中写入拷贝的内容
         with open(receive_file_path, "ab") as f:
                 f.write(receive_file)
+        new_data = int(copy_size*100/file_size)
+        # 文件拷贝进度
+        if new_data - old_data == 5:
+            old_data = new_data
+            print('拷贝完成:%%%d' % old_data)
         # 如果文件拷贝大小等于要拷贝的文件大小，则提示数据传输完成，跳出循环，
         if copy_size == file_size:
             break
     print('数据传输已完成：', copy_size)
     # 比对源文件的MD5值与拷贝文件的MD5值是否一致
     if md5(receive_file_path) == file_md5:
+        Num_file += 1
         print('%s拷贝文件与源文件一致\n' % file_name)
     else:
         print('%s拷贝文件与源文件不一致，拷贝失败' % file_name)
         break
+# 拷贝结束时间
+end_time = time.time()
+use_time = end_time - start_time
 # 关闭客户端套接字
 client_socket.close()
+
+print('拷贝空文件夹数目:%d个，文件数目:%d个，拷贝文件总大小:%sM, 拷贝速度:%7.4fm/s, 拷贝用时:%ds' % (Num_dir, Num_file, float(Full_file_size/1000000), float(Full_file_size/1000000)/use_time, use_time))
