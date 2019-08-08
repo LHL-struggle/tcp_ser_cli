@@ -22,7 +22,7 @@ client_socket.bind(('0.0.0.0', 8888))
 # 服务器的地址与端口号
 with open('C:\\Users\\Administrator\\Desktop\\Py_Home folder\\配置文件\\IP_address.txt', 'rb') as f:
     servers_address = tuple(eval(f.read().decode()))  # 字节型转换为字符串型,在将字符串型转换为元组型
-print(servers_address)
+#print(servers_address)
 # 服务器的地址与端口号
 #servers_address = ('192.168.8.183', 7777)
 # servers_address = ('192.168.8.115', 9999)
@@ -69,7 +69,8 @@ while 1:
         '''
         receive_file = client_socket.recv(file_size-copy_size)
         if len(receive_file) == 0:
-            open(receive_file_path, "ab")
+            # 如果是空文件，则创建一个空的文件
+            open(receive_file_path, "ab").close()
             break
         # 已拷贝文件大小
         copy_size += len(receive_file)
