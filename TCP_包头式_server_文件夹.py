@@ -10,7 +10,6 @@ import hashlib
 
 def get_file_md5(file_path):
     m = hashlib.md5()
-
     with open(file_path, "rb") as f:
         while True:
             data = f.read(1024)
@@ -19,6 +18,32 @@ def get_file_md5(file_path):
             m.update(data)
 
     return m.hexdigest().upper()
+
+# 发送空文件夹信息
+def An_empty_folder(sock_conn, file_abs_path):
+    '''
+    函数功能：将一个空文件夹发送给客户端
+    参数描述：
+        sock_conn 套接字对象
+        file_abs_path 待发送的文件的绝对路径
+    '''
+    # 空文件夹的相对路径
+    file_name = file_abs_path[len(dest_file_parent_path):]
+    if file_name[0] == '\\' or file_name[0] == '/':
+        file_name = file_name[1:]
+    # 当是空文件夹时，则将文件大小设为-1，用来提示客户端
+    file_size = -1
+    # md5值设为32个空格
+    file_md5 = ' '*32
+
+    file_name = file_name.encode()
+    file_name += b' ' * (300 - len(file_name))
+    print(file_name.decode())
+    file_size = "{:<15}".format(file_size).encode()
+    print(file_size.decode())
+    file_desc_info = file_name + file_size + file_md5.encode()
+    # 发送空文件夹信息
+    sock_conn.send(file_desc_info)
 
 
 def send_one_file(sock_conn, file_abs_path):
@@ -36,7 +61,7 @@ def send_one_file(sock_conn, file_abs_path):
     file_md5 = get_file_md5(file_abs_path)
 
     file_name = file_name.encode()
-    file_name += b' ' * (200 - len(file_name))
+    file_name += b' ' * (300 - len(file_name))
     print(file_name.decode())
     file_size = "{:<15}".format(file_size).encode()
     print(file_size.decode())
@@ -50,10 +75,15 @@ def send_one_file(sock_conn, file_abs_path):
                 break
             sock_conn.send(data)
 
-
 def send_file_thread(sock_conn):
     try:
         for root, dirs, files in os.walk(dest_file_abs_path):
+            # 判断是否为空文件夹
+            if len(dirs) == 0 and len(files) == 0:
+                # 如果是则将空文件夹的信息发送出去
+                An_empty_folder(sock_conn, root)
+                # 结束本次循环
+                continue
             for f in files:
                 file_abs_path = os.path.join(root, f)
                 print(file_abs_path)
